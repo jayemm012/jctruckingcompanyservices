@@ -1,0 +1,1255 @@
+<<<<<<< HEAD
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='globalCss/globalStyle.css') }}" />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+        }
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #1b1e27;
+            padding: 10px 20px;
+        }
+        .nav-links {
+            display: flex;
+            list-style: none;
+            padding: 0;
+        }
+        .nav-links li {
+            margin: 0 15px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 10px;
+            transition: 0.3s;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .nav-links a:hover {
+            background-color: red;
+        }
+        .section {
+            display: none;
+            padding: 20px;
+            text-align: center;
+        }
+        .active-section {
+            display: block;
+        }
+        .tracker-frame {
+            width: 100%;
+            height: calc(100vh - 100px);
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+            border-radius: 10px;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #343a40 !important;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <ul class="nav-links">
+            <li><a href="#dashboard" onclick="showSection('dashboard')">Dashboard</a></li>
+            <li><a href="#add-truck" onclick="showSection('add-truck')">Add Truck</a></li>
+            <li><a href="#tracker" onclick="showSection('tracker')">Tracker</a></li>
+            <li><a href="#user-management" onclick="showSection('user-management')">User Management</a></li>
+            <li><a href="#driver" onclick="showSection('driver')">Driver</a></li>
+            <li><a href="#driver-total-salary" onclick="showSection('driver-total-salary')">Driver Total Salary</a></li>
+            <li><a href="#payment-history" onclick="showSection('payment-history')">Payment History</a></li>
+            <li><a href="#announcement" onclick="showSection('announcement')">Announcement</a></li>
+            <li><a href="#send-message-user" onclick="showSection('send-message-user')">Send Message to User</a></li>
+            <li><a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container-fluid content-wrapper">
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active-section">
+            <h3 class="text-center">Welcome to the Admin Dashboard</h3>
+            <p class="text-center">Here you can manage all aspects of the trucking company.</p>
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by pickup, dropoff, or client username..." onkeyup="filterTable()"/>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="assignTripsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client Username</th>
+                            <th>Pickup</th>
+                            <th>Dropoff</th>
+                            <th>Waste Type</th>
+                            <th>Volume</th>
+                            <th>Schedule</th>
+                            <th>Status</th>
+                            <th>Assign Driver</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in service_requests %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ req.username }}</td>
+                            <td>{{ req.pickup }}</td>
+                            <td>{{ req.dropoff }}</td>
+                            <td>{{ req.waste_type }}</td>
+                            <td>{{ req.volume }}</td>
+                            <td>{{ req.schedule }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('update_service_status', service_id=req.id) }}">
+                                    <select name="status" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
+                                        <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                        <option value="Ongoing" {% if req.status == 'Ongoing' %}selected{% endif %}>Ongoing</option>
+                                        <option value="Complete" {% if req.status == 'Complete' %}selected{% endif %}>Complete</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('assign_trip') }}">
+                                    <input type="hidden" name="service_id" value="{{ req.id }}">
+                                    <select name="driver_username" class="form-select form-select-sm mb-2" required>
+                                        <option value="" disabled selected>Select Driver</option>
+                                        {% for driver in drivers %}
+                                            <option value="{{ driver.username }}">{{ driver.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">Assign</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center no-data">No service requests found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Truck Section -->
+        <div id="add-truck" class="section">
+            <div class="form-container">
+                <h1 class="display-6 my-4 text-center">Add New Truck</h1>
+                <form action="{{ url_for('add_truck') }}" method="POST" class="addTruckForm">
+                    <div class="mb-3">
+                        <label for="truck_number" class="form-label">Truck Number:</label>
+                        <input class="form-control" type="text" name="truck_number" id="truck_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="model" class="form-label">Model:</label>
+                        <input class="form-control" type="text" name="model" id="model" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="plate_number" class="form-label">Plate Number:</label>
+                        <input class="form-control" type="text" name="plate_number" id="plate_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capacity" class="form-label">Capacity:</label>
+                        <input class="form-control" type="text" name="capacity" id="capacity" required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary float-end">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tracker Section -->
+        <div id="tracker" class="section">
+            <h3 class="text-center">Tracker Section</h3>
+            <div class="row justify-content-center mt-4">
+                <div class="col-12 px-0">
+                    <iframe src="https://pro.sinotrack.com/" title="GPS" class="tracker-frame"></iframe>
+                </div>
+            </div>
+        </div>
+
+    
+        <!-- User Management Section -->
+<div id="user-management" class="section">
+    <div class="container-fluid content-wrapper">
+        <div class="row justify-content-center">
+            <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                <h2 class="mb-4 text-center">User Management</h2>
+
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <input
+                      type="text"
+                      id="searchInputUserManagement"
+                      class="form-control"
+                      placeholder="Search by username, email, or name..."
+                      onkeyup="filterUserTable()"
+                    />
+                </div>
+
+                <!-- User Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="userTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Contact No</th>
+                                <th>Age</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.full_name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.contact_no }}</td>
+                                <td>{{ user.age }}</td>
+                                <td>{{ user.address }}</td>
+                                <td>
+                                  {% if user.is_deleted %}
+                                    <span class="deleted">Deleted</span>
+                                  {% else %}
+                                    <span class="recovered">Active</span>
+                                  {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-warning btn-sm action-btn">Edit</button>
+                                    </form>
+                                    {% if not user.is_deleted %}
+                                    <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm action-btn">Delete</button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('recover_user', user_id=user.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-success btn-sm action-btn">Recover</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center">No users found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .action-btn {
+            margin-right: 8px;
+        }
+        .recovered {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .deleted {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function filterUserTable() {
+            const input = document.getElementById("searchInputUserManagement").value.toLowerCase();
+            const rows = document.querySelectorAll("#userTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+    </script>
+</div>
+
+
+        <!-- Driver Salary Section -->
+        <div id="driver" class="section">
+            <div class="row justify-content-center">
+                <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                    <h2 class="mb-4 text-center">Driver </h2>
+
+                    <!-- Search Bar -->
+                    <div class="mb-3">
+                        <input type="text" id="searchInputSalary" class="form-control" placeholder="Search by username, name, email or contact..." onkeyup="filterSalaryTable()" />
+                    </div>
+
+                    <!-- Driver Salary Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="driverTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Contact No</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for driver in drivers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ driver.username }}</td>
+                                    <td>{{ driver.full_name or '' }}</td>
+                                    <td>{{ driver.email or '' }}</td>
+                                    <td>{{ driver.contact_no or '' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No drivers found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver Total Salary Section -->
+        <div id="driver-total-salary" class="section">
+            <div class="row justify-content-center">
+                <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                    <h2 class="mb-4 text-center">Driver Total Salary</h2>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="driverTotalSalaryTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Total Salary (₱)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for driver in drivers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ driver.username }}</td>
+                                    <td>{{ driver.full_name or '' }}</td>
+                                    <td>
+                                        {{ driver_salaries[driver.username] if driver.username in driver_salaries else 0 }}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('reset_driver_salary', username=driver.username) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reset salary for {{ driver.username }}?')">Reset</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No drivers found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment History Section -->
+<div id="payment-history" class="section">
+    <div class="row justify-content-center">
+        <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+            <h2 class="mb-4 text-center">Payment History</h2>
+            <!-- Search Bar -->
+            <div class="mb-3">
+                <input
+                  type="text"
+                  id="searchInputPayment"
+                  class="form-control"
+                  placeholder="Search by username, amount, method, or date..."
+                  onkeyup="filterPaymentTable()"
+                />
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="paymentHistoryTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Amount (₱)</th>
+                            <th>Method</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ payment.username }}</td>
+                            <td>{{ payment.amount }}</td>
+                            <td>{{ payment.method }}</td>
+                            <td>{{ payment.date }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No payments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- Announcement Section -->
+<div id="announcement" class="section">
+    <div class="row justify-content-center">
+        <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+            <h2 class="mb-4 text-center">Admin Announcements</h2>
+            <form method="POST" action="{{ url_for('post_announcement') }}">
+                <div class="mb-3">
+                    <textarea class="form-control" name="message" rows="3" placeholder="Write your announcement here..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Post Announcement</button>
+            </form>
+            <hr>
+            <h4 class="mb-3">Previous Announcements</h4>
+            <ul class="list-group">
+                {% for ann in announcements %}
+                <li class="list-group-item">
+                    <strong>{{ ann.date.strftime('%Y-%m-%d %H:%M') if ann.date else '' }}</strong>: {{ ann.message }}
+                </li>
+                {% else %}
+                <li class="list-group-item text-center">No announcements yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Sent Messages Section -->
+<div id="sent-messages" class="section">
+    <div class="row justify-content-center">
+        <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+            <h2 class="mb-4 text-center">Sent Messages</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="sentMessagesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Recipient</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in user_messages %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ msg.recipient_username }}</td>
+                            <td>{{ msg.message }}</td>
+                            <td>{{ msg.date.strftime('%Y-%m-%d %H:%M') if msg.date else '' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center">No messages sent yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Send Message to User Section -->
+    <div id="send-message-user" class="section">
+        <div class="row justify-content-center">
+            <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                <h2 class="mb-4 text-center">Chat with Users</h2>
+                <form method="POST" action="{{ url_for('admin_send_message') }}">
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">Select User:</label>
+                        <select class="form-select" name="recipient" id="recipient" required>
+                            <option value="" disabled selected>Select a user or driver</option>
+                            <optgroup label="Users">
+                                {% for user in users %}
+                                    <option value="{{ user.username }}">{{ user.username }} ({{ user.full_name }})</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="Drivers">
+                                {% for driver in drivers %}
+                                    <option value="{{ driver.username }}">{{ driver.username }} ({{ driver.full_name or driver.username }})</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <textarea class="form-control" name="message" rows="2" placeholder="Write your message..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Send Message</button>
+                </form>
+                <hr>
+                <h4 class="mb-3">Recent Messages</h4>
+                <div style="max-height:300px;overflow-y:auto;">
+                    <ul class="list-group">
+                        {% for msg in user_messages %}
+                            <li class="list-group-item" style="background:{{ '#FFCC00' if msg.sender_username == 'admin' else '#444b54' }};color:{{ '#000' if msg.sender_username == 'admin' else '#fff' }};">
+                                <strong>
+                                    {{ 'You' if msg.sender_username == 'admin' else msg.sender_username }}
+                                    to
+                                    {{ msg.recipient_username }}
+                                </strong>: {{ msg.message }}
+                                <div style="font-size:12px;color:#888;">{{ msg.date.strftime('%Y-%m-%d %H:%M') if msg.date else '' }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <!-- Modal Content -->
+          <div class="modal-body text-center">
+            <p class="mb-4 fw-bold">Are you sure you want to log out?</p>
+
+            <div class="d-flex justify-content-center align-items-center gap-3">
+              <!-- Yes, Logout button wider -->
+              <form action="{{ url_for('logout') }}" method="POST" style="width: 150px;">
+                <button type="submit" class="btn btn-danger w-100">Yes, Logout</button>
+              </form>
+
+              <!-- Cancel button smaller -->
+              <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="width: 90px;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            const target = document.getElementById(sectionId);
+            if (target) {
+                target.style.display = 'block';
+                window.location.hash = sectionId;
+            }
+        }
+
+        // Preserve section on page load based on hash
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                showSection(hash);
+            } else {
+                showSection('dashboard');
+            }
+        });
+
+        function filterTable() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const rows = document.querySelectorAll("#assignTripsTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterSalaryTable() {
+            const input = document.getElementById("searchInputSalary").value.toLowerCase();
+            const rows = document.querySelectorAll("#driverTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterCustomerTable() {
+            const input = document.getElementById("searchInputCustomer").value.toLowerCase();
+            const rows = document.querySelectorAll("#customerTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterPaymentTable() {
+            const input = document.getElementById("searchInputPayment").value.toLowerCase();
+            const rows = document.querySelectorAll("#paymentHistoryTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+    </script>
+</body>
+</html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='globalCss/globalStyle.css') }}" />
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: white;
+        }
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #1b1e27;
+            padding: 10px 20px;
+        }
+        .nav-links {
+            display: flex;
+            list-style: none;
+            padding: 0;
+        }
+        .nav-links li {
+            margin: 0 15px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 10px;
+            transition: 0.3s;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .nav-links a:hover {
+            background-color: red;
+        }
+        .section {
+            display: none;
+            padding: 20px;
+            text-align: center;
+        }
+        .active-section {
+            display: block;
+        }
+        .tracker-frame {
+            width: 100%;
+            height: calc(100vh - 100px);
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+            border-radius: 10px;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #343a40 !important;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <ul class="nav-links">
+            <li><a href="#dashboard" onclick="showSection('dashboard')">Dashboard</a></li>
+            <li><a href="#add-truck" onclick="showSection('add-truck')">Add Truck</a></li>
+            <li><a href="#tracker" onclick="showSection('tracker')">Tracker</a></li>
+            <li><a href="#user-management" onclick="showSection('user-management')">User Management</a></li>
+            <li><a href="#driver" onclick="showSection('driver')">Driver</a></li>
+            <li><a href="#driver-total-salary" onclick="showSection('driver-total-salary')">Driver Total Salary</a></li>
+            <li><a href="#payment-history" onclick="showSection('payment-history')">Payment History</a></li>
+            <li><a href="#announcement" onclick="showSection('announcement')">Announcement</a></li>
+            <li><a href="#send-message-user" onclick="showSection('send-message-user')">Send Message to User</a></li>
+            <li><a href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container-fluid content-wrapper">
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active-section">
+            <h3 class="text-center">Welcome to the Admin Dashboard</h3>
+            <p class="text-center">Here you can manage all aspects of the trucking company.</p>
+            <div class="mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search by pickup, dropoff, or client username..." onkeyup="filterTable()"/>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="assignTripsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Client Username</th>
+                            <th>Pickup</th>
+                            <th>Dropoff</th>
+                            <th>Waste Type</th>
+                            <th>Volume</th>
+                            <th>Schedule</th>
+                            <th>Status</th>
+                            <th>Assign Driver</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in service_requests %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ req.username }}</td>
+                            <td>{{ req.pickup }}</td>
+                            <td>{{ req.dropoff }}</td>
+                            <td>{{ req.waste_type }}</td>
+                            <td>{{ req.volume }}</td>
+                            <td>{{ req.schedule }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('update_service_status', service_id=req.id) }}">
+                                    <select name="status" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
+                                        <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                        <option value="Ongoing" {% if req.status == 'Ongoing' %}selected{% endif %}>Ongoing</option>
+                                        <option value="Complete" {% if req.status == 'Complete' %}selected{% endif %}>Complete</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('assign_trip') }}">
+                                    <input type="hidden" name="service_id" value="{{ req.id }}">
+                                    <select name="driver_username" class="form-select form-select-sm mb-2" required>
+                                        <option value="" disabled selected>Select Driver</option>
+                                        {% for driver in drivers %}
+                                            <option value="{{ driver.username }}">{{ driver.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">Assign</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center no-data">No service requests found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Truck Section -->
+        <div id="add-truck" class="section">
+            <div class="form-container">
+                <h1 class="display-6 my-4 text-center">Add New Truck</h1>
+                <form action="{{ url_for('add_truck') }}" method="POST" class="addTruckForm">
+                    <div class="mb-3">
+                        <label for="truck_number" class="form-label">Truck Number:</label>
+                        <input class="form-control" type="text" name="truck_number" id="truck_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="model" class="form-label">Model:</label>
+                        <input class="form-control" type="text" name="model" id="model" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="plate_number" class="form-label">Plate Number:</label>
+                        <input class="form-control" type="text" name="plate_number" id="plate_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="capacity" class="form-label">Capacity:</label>
+                        <input class="form-control" type="text" name="capacity" id="capacity" required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary float-end">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tracker Section -->
+        <div id="tracker" class="section">
+            <h3 class="text-center">Tracker Section</h3>
+            <div class="row justify-content-center mt-4">
+                <div class="col-12 px-0">
+                    <iframe src="https://pro.sinotrack.com/" title="GPS" class="tracker-frame"></iframe>
+                </div>
+            </div>
+        </div>
+
+    
+        <!-- User Management Section -->
+<div id="user-management" class="section">
+    <div class="container-fluid content-wrapper">
+        <div class="row justify-content-center">
+            <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                <h2 class="mb-4 text-center">User Management</h2>
+
+                <!-- Search Bar -->
+                <div class="mb-3">
+                    <input
+                      type="text"
+                      id="searchInputUserManagement"
+                      class="form-control"
+                      placeholder="Search by username, email, or name..."
+                      onkeyup="filterUserTable()"
+                    />
+                </div>
+
+                <!-- User Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="userTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Contact No</th>
+                                <th>Age</th>
+                                <th>Address</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.full_name }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.contact_no }}</td>
+                                <td>{{ user.age }}</td>
+                                <td>{{ user.address }}</td>
+                                <td>
+                                  {% if user.is_deleted %}
+                                    <span class="deleted">Deleted</span>
+                                  {% else %}
+                                    <span class="recovered">Active</span>
+                                  {% endif %}
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-warning btn-sm action-btn">Edit</button>
+                                    </form>
+                                    {% if not user.is_deleted %}
+                                    <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger btn-sm action-btn">Delete</button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('recover_user', user_id=user.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-success btn-sm action-btn">Recover</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center">No users found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .action-btn {
+            margin-right: 8px;
+        }
+        .recovered {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .deleted {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function filterUserTable() {
+            const input = document.getElementById("searchInputUserManagement").value.toLowerCase();
+            const rows = document.querySelectorAll("#userTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+    </script>
+</div>
+
+
+        <!-- Driver Salary Section -->
+        <div id="driver" class="section">
+            <div class="row justify-content-center">
+                <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                    <h2 class="mb-4 text-center">Driver </h2>
+
+                    <!-- Search Bar -->
+                    <div class="mb-3">
+                        <input type="text" id="searchInputSalary" class="form-control" placeholder="Search by username, name, email or contact..." onkeyup="filterSalaryTable()" />
+                    </div>
+
+                    <!-- Driver Salary Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="driverTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Contact No</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for driver in drivers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ driver.username }}</td>
+                                    <td>{{ driver.full_name or '' }}</td>
+                                    <td>{{ driver.email or '' }}</td>
+                                    <td>{{ driver.contact_no or '' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No drivers found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver Total Salary Section -->
+        <div id="driver-total-salary" class="section">
+            <div class="row justify-content-center">
+                <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                    <h2 class="mb-4 text-center">Driver Total Salary</h2>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="driverTotalSalaryTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Total Salary (₱)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for driver in drivers %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ driver.username }}</td>
+                                    <td>{{ driver.full_name or '' }}</td>
+                                    <td>
+                                        {{ driver_salaries[driver.username] if driver.username in driver_salaries else 0 }}
+                                    </td>
+                                    <td>
+                                        <form method="POST" action="{{ url_for('reset_driver_salary', username=driver.username) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reset salary for {{ driver.username }}?')">Reset</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No drivers found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment History Section -->
+<div id="payment-history" class="section">
+    <div class="row justify-content-center">
+        <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+            <h2 class="mb-4 text-center">Payment History</h2>
+            <!-- Search Bar -->
+            <div class="mb-3">
+                <input
+                  type="text"
+                  id="searchInputPayment"
+                  class="form-control"
+                  placeholder="Search by username, amount, method, or date..."
+                  onkeyup="filterPaymentTable()"
+                />
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="paymentHistoryTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Amount (₱)</th>
+                            <th>Method</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ payment.username }}</td>
+                            <td>{{ payment.amount }}</td>
+                            <td>{{ payment.method }}</td>
+                            <td>{{ payment.date }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No payments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- Announcement Section -->
+<div id="announcement" class="section">
+    <div class="row justify-content-center">
+        <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+            <h2 class="mb-4 text-center">Admin Announcements</h2>
+            <form method="POST" action="{{ url_for('post_announcement') }}">
+                <div class="mb-3">
+                    <textarea class="form-control" name="message" rows="3" placeholder="Write your announcement here..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Post Announcement</button>
+            </form>
+            <hr>
+            <h4 class="mb-3">Previous Announcements</h4>
+            <ul class="list-group">
+                {% for ann in announcements %}
+                <li class="list-group-item">
+                    <strong>{{ ann.date.strftime('%Y-%m-%d %H:%M') if ann.date else '' }}</strong>: {{ ann.message }}
+                </li>
+                {% else %}
+                <li class="list-group-item text-center">No announcements yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Sent Messages Section -->
+<div id="sent-messages" class="section">
+    <div class="row justify-content-center">
+        <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+            <h2 class="mb-4 text-center">Sent Messages</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="sentMessagesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Recipient</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in user_messages %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ msg.recipient_username }}</td>
+                            <td>{{ msg.message }}</td>
+                            <td>{{ msg.date.strftime('%Y-%m-%d %H:%M') if msg.date else '' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center">No messages sent yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Send Message to User Section -->
+    <div id="send-message-user" class="section">
+        <div class="row justify-content-center">
+            <div class="col-11 col-md-10 col-lg-9 table-container bg-light text-dark rounded p-4 shadow">
+                <h2 class="mb-4 text-center">Chat with Users</h2>
+                <form method="POST" action="{{ url_for('admin_send_message') }}">
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">Select User:</label>
+                        <select class="form-select" name="recipient" id="recipient" required>
+                            <option value="" disabled selected>Select a user or driver</option>
+                            <optgroup label="Users">
+                                {% for user in users %}
+                                    <option value="{{ user.username }}">{{ user.username }} ({{ user.full_name }})</option>
+                                {% endfor %}
+                            </optgroup>
+                            <optgroup label="Drivers">
+                                {% for driver in drivers %}
+                                    <option value="{{ driver.username }}">{{ driver.username }} ({{ driver.full_name or driver.username }})</option>
+                                {% endfor %}
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <textarea class="form-control" name="message" rows="2" placeholder="Write your message..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Send Message</button>
+                </form>
+                <hr>
+                <h4 class="mb-3">Recent Messages</h4>
+                <div style="max-height:300px;overflow-y:auto;">
+                    <ul class="list-group">
+                        {% for msg in user_messages %}
+                            <li class="list-group-item" style="background:{{ '#FFCC00' if msg.sender_username == 'admin' else '#444b54' }};color:{{ '#000' if msg.sender_username == 'admin' else '#fff' }};">
+                                <strong>
+                                    {{ 'You' if msg.sender_username == 'admin' else msg.sender_username }}
+                                    to
+                                    {{ msg.recipient_username }}
+                                </strong>: {{ msg.message }}
+                                <div style="font-size:12px;color:#888;">{{ msg.date.strftime('%Y-%m-%d %H:%M') if msg.date else '' }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="logoutModalLabel">Confirm Logout</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <!-- Modal Content -->
+          <div class="modal-body text-center">
+            <p class="mb-4 fw-bold">Are you sure you want to log out?</p>
+
+            <div class="d-flex justify-content-center align-items-center gap-3">
+              <!-- Yes, Logout button wider -->
+              <form action="{{ url_for('logout') }}" method="POST" style="width: 150px;">
+                <button type="submit" class="btn btn-danger w-100">Yes, Logout</button>
+              </form>
+
+              <!-- Cancel button smaller -->
+              <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="width: 90px;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            const target = document.getElementById(sectionId);
+            if (target) {
+                target.style.display = 'block';
+                window.location.hash = sectionId;
+            }
+        }
+
+        // Preserve section on page load based on hash
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                showSection(hash);
+            } else {
+                showSection('dashboard');
+            }
+        });
+
+        function filterTable() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const rows = document.querySelectorAll("#assignTripsTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterSalaryTable() {
+            const input = document.getElementById("searchInputSalary").value.toLowerCase();
+            const rows = document.querySelectorAll("#driverTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterCustomerTable() {
+            const input = document.getElementById("searchInputCustomer").value.toLowerCase();
+            const rows = document.querySelectorAll("#customerTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterPaymentTable() {
+            const input = document.getElementById("searchInputPayment").value.toLowerCase();
+            const rows = document.querySelectorAll("#paymentHistoryTable tbody tr");
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? "" : "none";
+            });
+        }
+    </script>
+</body>
+</html>
+>>>>>>> 9c8020a (Commit all changes including requirements.txt and templates)
